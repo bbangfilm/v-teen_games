@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V-TEEN 게임 점수판</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #fff9c4, #fce4ec, #e3f2fd, #e8f5e9); min-height: 100vh; padding: 16px; }
+
+  h1 { text-align: center; font-size: 1.3em; color: #4a148c; margin-bottom: 4px; text-shadow: 1px 1px 0 #fff; }
+  .subtitle { text-align: center; font-size: 0.8em; color: #888; margin-bottom: 14px; }
+
+  .t0 { --tc: #e53935; --tl: #ffebee; --tb: #ef9a9a; }
+  .t1 { --tc: #1976d2; --tl: #e3f2fd; --tb: #90caf9; }
+  .t2 { --tc: #388e3c; --tl: #e8f5e9; --tb: #a5d6a7; }
+  .t3 { --tc: #f57c00; --tl: #fff3e0; --tb: #ffcc80; }
+
+  .game-tabs { display: flex; gap: 6px; margin-bottom: 14px; justify-content: center; flex-wrap: wrap; }
+  .tab-btn { padding: 8px 16px; border-radius: 20px; border: 2px solid #ccc; background: #fff; cursor: pointer; font-size: 0.85em; font-weight: bold; transition: all .2s; }
+  .tab-btn.active { background: #7b1fa2; color: #fff; border-color: #7b1fa2; }
+  .tab-btn:hover:not(.active) { border-color: #7b1fa2; color: #7b1fa2; }
+
+  .score-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.1); margin-bottom: 14px; }
+  .score-table th { padding: 10px 6px; font-size: 0.8em; background: #f3e5f5; color: #4a148c; }
+  .score-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #f0f0f0; font-size: 0.85em; }
+  .team-name-cell { font-weight: bold; font-size: 0.75em; padding: 8px 6px; }
+  .round-input { width: 44px; padding: 4px 2px; border: 2px solid var(--tb); border-radius: 8px; text-align: center; font-size: 0.85em; background: var(--tl); color: #333; outline: none; transition: border .2s; }
+  .round-input:focus { border-color: var(--tc); }
+  .subtotal-cell { font-weight: bold; color: var(--tc); background: var(--tl); padding: 6px 8px; border-radius: 8px; display: inline-block; min-width: 36px; }
+
+  .total-section h2 { text-align: center; color: #4a148c; margin-bottom: 10px; font-size: 1em; }
+  .total-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .total-card { border-radius: 16px; padding: 14px 10px; text-align: center; position: relative; transition: transform .3s; }
+  .total-card:hover { transform: scale(1.03); }
+  .total-card .rank { font-size: 1.4em; }
+  .total-card .tname { font-size: 0.75em; font-weight: bold; margin: 4px 0; }
+  .total-card .tscore { font-size: 1.8em; font-weight: bold; }
+  .total-card .tscore span { font-size: 0.5em; font-weight: normal; }
+  .winner-badge { position: absolute; top: -8px; right: -8px; background: #ffd700; color: #7b1fa2; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 1em; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+
+  .t0-card { background: linear-gradient(135deg, #ffebee, #ffcdd2); border: 2px solid #ef9a9a; }
+  .t1-card { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 2px solid #90caf9; }
+  .t2-card { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border: 2px solid #a5d6a7; }
+  .t3-card { background: linear-gradient(135deg, #fff3e0, #ffe0b2); border: 2px solid #ffcc80; }
+
+  .reset-btn { display: block; margin: 16px auto 0; padding: 10px 28px; background: #7b1fa2; color: #fff; border: none; border-radius: 20px; font-size: 0.9em; cursor: pointer; font-weight: bold; }
+  .reset-btn:hover { background: #4a148c; }
+
+  .members-toggle { text-align: center; margin-bottom: 14px; }
+  .members-toggle button { background: none; border: 1px dashed #aaa; border-radius: 12px; padding: 4px 14px; font-size: 0.75em; color: #888; cursor: pointer; }
+  .members-box { display: none; background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .members-box.open { display: block; }
+  .members-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .member-group { border-radius: 10px; padding: 8px; }
+  .member-group h3 { font-size: 0.78em; font-weight: bold; margin-bottom: 4px; }
+  .member-group p { font-size: 0.72em; color: #555; line-height: 1.6; }
+  .mg0 { background: #ffebee; } .mg0 h3 { color: #e53935; }
+  .mg1 { background: #e3f2fd; } .mg1 h3 { color: #1976d2; }
+  .mg2 { background: #e8f5e9; } .mg2 h3 { color: #388e3c; }
+  .mg3 { background: #fff3e0; } .mg3 h3 { color: #f57c00; }
+</style>
+</head>
+<body>
+
+<h1>✝️ 더 행복한 교회 브이틴(V-TEEN) 🎮</h1>
+<p class="subtitle">게임 점수판</p>
+
+<div class="members-toggle">
+  <button onclick="toggleMembers()">👥 조원 명단 보기/숨기기</button>
+</div>
+<div class="members-box" id="membersBox">
+  <div class="members-grid">
+    <div class="member-group mg0"><h3>💪 삼손은힘이조</h3><p>손권우 · 이예찬 · 임은성 · 안필립<br>배시현 · 한찬희 · 박주혜 · 김여율</p></div>
+    <div class="member-group mg1"><h3>🪨 다윗은이기조</h3><p>정지원 · 최예린 · 한송희 · 김주은<br>김범준 · 나현호 · 최정현 · 이시원</p></div>
+    <div class="member-group mg2"><h3>👑 솔로몬은지혜롭조</h3><p>이서은 · 김여은 · 김소윤 · 이예린<br>김예준 · 김영광 · 문성준 · 조예건</p></div>
+    <div class="member-group mg3"><h3>🔥 엘리야는불마차타조</h3><p>정지예 · 문수현 · 이감원 · 최예찬<br>이선유 · 이예성 · 김하율 · 이연후</p></div>
+  </div>
+</div>
+
+<div class="game-tabs" id="gameTabs"></div>
+<table class="score-table" id="scoreTable"></table>
+
+<div class="total-section">
+  <h2>🏆 전체 총점</h2>
+  <div class="total-cards" id="totalCards"></div>
+</div>
+
+<button class="reset-btn" onclick="resetScores()">🔄 점수 초기화</button>
+
+<script>
+const TEAMS = [
+  { name: '💪 삼손은힘이조', cls: 't0', cardCls: 't0-card' },
+  { name: '🪨 다윗은이기조', cls: 't1', cardCls: 't1-card' },
+  { name: '👑 솔로몬은지혜롭조', cls: 't2', cardCls: 't2-card' },
+  { name: '🔥 엘리야는불마차타조', cls: 't3', cardCls: 't3-card' },
+];
+const GAMES = 5;
+const ROUNDS = 7;
+
+// scores[game][team][round]
+let scores = Array.from({length: GAMES}, () =>
+  Array.from({length: TEAMS.length}, () => Array(ROUNDS).fill(''))
+);
+let activeGame = 0;
+
+function getScore(g, t, r) {
+  const v = scores[g][t][r];
+  return v === '' ? 0 : parseInt(v) || 0;
+}
+
+function getSubtotal(g, t) {
+  return scores[g][t].reduce((sum, _, r) => sum + getScore(g, t, r), 0);
+}
+
+function getTotal(t) {
+  let sum = 0;
+  for (let g = 0; g < GAMES; g++) sum += getSubtotal(g, t);
+  return sum;
+}
+
+function buildTabs() {
+  const tabs = document.getElementById('gameTabs');
+  tabs.innerHTML = '';
+  for (let g = 0; g < GAMES; g++) {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (g === activeGame ? ' active' : '');
+    btn.textContent = `게임 ${g + 1}`;
+    btn.onclick = () => { activeGame = g; buildTabs(); buildTable(); };
+    tabs.appendChild(btn);
+  }
+}
+
+function buildTable() {
+  const g = activeGame;
+  const table = document.getElementById('scoreTable');
+  let html = '<thead><tr><th>조</th>';
+  for (let r = 0; r < ROUNDS; r++) html += `<th>${r + 1}판</th>`;
+  html += '<th>소계</th></tr></thead><tbody>';
+
+  for (let t = 0; t < TEAMS.length; t++) {
+    html += `<tr class="${TEAMS[t].cls}">`;
+    html += `<td class="team-name-cell" style="color:var(--tc)">${TEAMS[t].name}</td>`;
+    for (let r = 0; r < ROUNDS; r++) {
+      const val = scores[g][t][r];
+      html += `<td><input class="round-input ${TEAMS[t].cls}" type="number" min="0"
+        value="${val}"
+        data-g="${g}" data-t="${t}" data-r="${r}"
+        oninput="handleInput(this)"></td>`;
+    }
+    html += `<td><span class="subtotal-cell ${TEAMS[t].cls}" id="sub-${g}-${t}">${getSubtotal(g, t)}</span></td>`;
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  table.innerHTML = html;
+  buildTotals();
+}
+
+function handleInput(el) {
+  const g = parseInt(el.dataset.g);
+  const t = parseInt(el.dataset.t);
+  const r = parseInt(el.dataset.r);
+  scores[g][t][r] = el.value; // keep as string to preserve empty state
+
+  // Update subtotal for this team
+  const subEl = document.getElementById(`sub-${g}-${t}`);
+  if (subEl) subEl.textContent = getSubtotal(g, t);
+
+  buildTotals();
+}
+
+function buildTotals() {
+  const totals = TEAMS.map((_, t) => getTotal(t));
+  const maxScore = Math.max(...totals);
+  const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
+
+  // Get rank for each team
+  const sorted = [...totals].sort((a, b) => b - a);
+  const rankOf = totals.map(s => sorted.indexOf(s)); // 0-based rank index
+
+  const container = document.getElementById('totalCards');
+  container.innerHTML = TEAMS.map((team, t) => {
+    const isWinner = totals[t] === maxScore && maxScore > 0;
+    return `<div class="total-card ${team.cardCls}">
+      ${isWinner ? '<div class="winner-badge">👑</div>' : ''}
+      <div class="rank">${rankEmoji[rankOf[t]]}</div>
+      <div class="tname">${team.name}</div>
+      <div class="tscore">${totals[t]}<span>점</span></div>
+    </div>`;
+  }).join('');
+}
+
+function resetScores() {
+  scores = Array.from({length: GAMES}, () =>
+    Array.from({length: TEAMS.length}, () => Array(ROUNDS).fill(''))
+  );
+  buildTable();
+}
+
+function toggleMembers() {
+  document.getElementById('membersBox').classList.toggle('open');
+}
+
+buildTabs();
+buildTable();
+</script>
+</body>
+</html>
